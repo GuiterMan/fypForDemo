@@ -2,7 +2,7 @@
 def isCarCollided(carLineArray, c):
     for row in carLineArray:
         if row[0] == c.line:
-            if 50 > (c.x - row[1].x) > 0:
+            if 35 > (c.x - row[1].x) > 0:
               return True
     return False
 
