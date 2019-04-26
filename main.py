@@ -15,22 +15,28 @@ pygame.init()
 # Set Simulator changeable variable
 itlsMode = True  # Use ITLS mode or Normal Light
 simulatorSpeed = 3  # Simulator speed (default = 1)
-totalCarNum = 2500  # How many car generate in the sim period
-totalPedNum = 2000  # How many pedestrian generate in the sim period
-totalGrandMotherNum = 12 # How many grandmother generate in the sim period
+totalCarNum = 2500 # How many car generate in the sim period
+totalPedNum = 2500  # How many pedestrian generate in the sim period
+totalGrandMotherNum = 1000 # How many grandmother generate in the sim period
 simTimePeriod = 3600  # How long the simulation run (in sec)
 
+carMaxNumAtJunction = 15 # Max number of pedstrain wait at junction
+carLightGreenMaxTime = simTimePeriod  # Car green light max time (For fixing bug only
+carLightGreenMinTime = 10 #The least Carlight Green time last
+carMaxWaitingtimeAtJunction = 30 # Switch light if a car wait more than x sec (Must Be > 16)
+
+pedMaxNumAtJunction = 20  # Max number of pedstrain wait at junction
+pedLightGreenMaxTime = simTimePeriod  # Car green light max time (For fixing bug only)
+pedLightGreenMinTime = 10 #The least Carlight Green time last
+pedMaxWaitingtimeAtJunction = 30 # Switch light if a ped wait more than x sec
+
+pedLightFlashLongerTime = 5 # Exetend Flashing Green Time for pedLight
+
+#No need to change (just calculation)
 carGenRate = (simTimePeriod * 30) / totalCarNum  # sec * frames / total carNum
 pedGenRate = (simTimePeriod * 30) / totalPedNum  # sec * frames / total carNum
 grandMotherGenRate = (simTimePeriod * 30) / totalGrandMotherNum
-pedMaxNumAtJunction = 20  # Max number of pedstrain wait at junction
-carMaxNumAtJunction = 15 # Max number of pedstrain wait at junction
-carLightGreenMaxTime = simTimePeriod  # Car green light max time
-carLightGreenMinTime = 10 #The least Carlight Green time last
-pedLightGreenMaxTime = simTimePeriod  # Car green light max time
-pedLightGreenMinTime = 10 #The least Carlight Green time last
-carLightRedMaxTime = 24  # Car red light max time (Must Be > 16)
-pedLightFlashLongerTime = 5 # Exetend Flashing Green Time for pedLight
+
 # Set Simulator counting variable
 clock = pygame.time.Clock()
 running = True
@@ -152,18 +158,17 @@ if __name__ == "__main__":
                 carWaitingtimeAtJunction = simTime - carWaitingtimeAtJunctionTimeStamp
             else:
                 carWaitingtimeAtJunction = 0
-
             if (pedCountAtPedStart > 0) and (countPedWaitAtJunctionTime == True) and ((pedLight == "red") or (pedLight == "flashingGreen")):  # At least one ped waiting at intersection
                 pedWaitingtimeAtJunctionTimeStamp = simTime
                 countPedWaitAtJunctionTime = False
 
-            if (countPedWaitAtJunctionTime == False) and ((pedLight == "red") or (pedLight == "flashingGreen")):
+            if (countPedWaitAtJunctionTime == False) and (pedCountAtPedStart > 0) and ((pedLight == "red") or (pedLight == "flashingGreen")):
                 pedWaitingtimeAtJunction = simTime - pedWaitingtimeAtJunctionTimeStamp
             else:
                 pedWaitingtimeAtJunction = 0
 
             if (carLight == "green" and
-                    (((simTime - carLightChgTime >= carLightGreenMinTime) and ((pedCountAtPedStart >= pedMaxNumAtJunction) or (pedWaitingtimeAtJunction > 30))) or (simTime - carLightChgTime >= carLightGreenMaxTime))):  # CarLight switch to red conditiion
+                    (((simTime - carLightChgTime >= carLightGreenMinTime) and ((pedCountAtPedStart >= pedMaxNumAtJunction) or (pedWaitingtimeAtJunction > pedMaxWaitingtimeAtJunction))) or (simTime - carLightChgTime >= carLightGreenMaxTime))):  # CarLight switch to red conditiion
                 carLight = "greenToYellow"
                 # print("carLight switched to yellow.")
                 # print("carLight status: " + carLight1 + ".\n")
@@ -179,7 +184,7 @@ if __name__ == "__main__":
                 countPedLightTime = True
 
             elif (pedLight == "green" and
-                (((simTime - pedLightChgTime >= carLightGreenMinTime) and ((carCountAtCarLight >= carMaxNumAtJunction) or (carWaitingtimeAtJunction > 30))) or (simTime - pedLightChgTime >= pedLightGreenMaxTime))):  # CarLight switch to red conditiion
+                (((simTime - pedLightChgTime >= carLightGreenMinTime) and ((carCountAtCarLight >= carMaxNumAtJunction) or (carWaitingtimeAtJunction > carMaxWaitingtimeAtJunction))) or (simTime - pedLightChgTime >= pedLightGreenMaxTime))):  # CarLight switch to red conditiion
 
                 pedLight = "flashingGreen"
                 countPedWaitAtJunctionTime = True
@@ -187,7 +192,7 @@ if __name__ == "__main__":
 
             elif pedLight == "flashingGreen" and simTime - pedLightChgTime > 10:
                 if pedLightIsWalking(pedArray, Background.pedStart0YAry):
-                    pedLight == "flashingGreenLonger"
+                    pedLight = "flashingGreenLonger"
                 else:
                     pedLight = "red"
                     carLight = "redToYellow"
@@ -197,6 +202,7 @@ if __name__ == "__main__":
                 pedLight = "red"
                 carLight = "redToYellow"
                 countCarLightTime = True
+                print("longer2")
 
             elif carLight == "redToYellow" and simTime - carLightChgTime >= 3:
                 carLight = "green"
@@ -332,7 +338,7 @@ if __name__ == "__main__":
             pedStartNum = random.randint(0, 1)
 
             c = Pedestrian(Background.pedStart0XAry[line], Background.pedStart0YAry[pedStartNum],
-                           random.uniform(0.09, 0.09) * simulatorSpeed, 0, line, pedStartNum)
+                           random.uniform(0.09, 0.1) * simulatorSpeed, 0, line, pedStartNum)
             pedArray.append(c)
 
         for p in pedArray:
@@ -395,7 +401,7 @@ if __name__ == "__main__":
         rendered = sys_font.render("pervious carlight time: " + str(carLightChgTime), 0, (0, 0, 0))
         Background.screen.blit(rendered, (Background.res_x * 0.7, Background.res_y * 0.87))
 
-        rendered = sys_font.render("pervious pedlight time: " + str(carLightChgTime), 0, (0, 0, 0))
+        rendered = sys_font.render("pervious pedlight time: " + str(pedLightChgTime), 0, (0, 0, 0))
         Background.screen.blit(rendered, (Background.res_x * 0.7, Background.res_y * 0.89))
 
         # Update Game
@@ -424,15 +430,28 @@ book = openpyxl.load_workbook('result.xlsx')
 sheet = book.active
 
 # K1 default = 1
-countSave = sheet['K1']
+countSave = sheet['U1']
 countSave.value += 1
 
-sheet['K1'] = countSave.value
+sheet['U1'] = countSave.value
 sheet[str('A' + str(countSave.value))] = countSave.value - 1
 sheet[str('B' + str(countSave.value))] = simTime
 sheet[str('C' + str(countSave.value))] = len(carArray)
 sheet[str('D' + str(countSave.value))] = len(pedArray)
 sheet[str('E' + str(countSave.value))] = totalCarWaitingTime / len(carArray) / 30
 sheet[str('F' + str(countSave.value))] = totalPedWaitingTime / len(pedArray) / 30
+
+sheet[str('G' + str(countSave.value))] = carMaxNumAtJunction # Max number of car wait at junction
+sheet[str('H' + str(countSave.value))] = carMaxWaitingtimeAtJunction # Switch light if a car wait more than x sec (Must Be > 16)
+sheet[str('I' + str(countSave.value))] = carLightGreenMinTime  #The least Carlight Green time last
+
+sheet[str('J' + str(countSave.value))] = pedMaxNumAtJunction # Max number of pedstrain wait at junction
+sheet[str('K' + str(countSave.value))] = pedMaxWaitingtimeAtJunction # Switch light if a ped wait more than x sec
+sheet[str('L' + str(countSave.value))] = pedLightGreenMinTime #The least Carlight Green time last
+
+sheet[str('M' + str(countSave.value))] = pedLightFlashLongerTime # Exetend Flashing Green Time for pedLight
+
+
+
 
 book.save("result.xlsx")
