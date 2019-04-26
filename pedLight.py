@@ -6,7 +6,7 @@ def pedTrafficLightSignalSwitching(pedLight, screen, res_x, res_y, green, darkGr
 
     if pedLight == "green":
         pygame.draw.rect(screen, green, (res_x * 0.348, res_y * 0.703, 10, 10))
-    elif pedLight == "flashingGreen":
+    elif pedLight == "flashingGreen" or pedLight == "flashingGreenLonger":
         if (int(simTime)) % 2 > 0:
             pygame.draw.rect(screen, darkGreen, (res_x * 0.348, res_y * 0.703, 10, 10))
         else:

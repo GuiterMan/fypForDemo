@@ -14,12 +14,14 @@ pygame.init()
 # Set Simulator changeable variable
 itlsMode = True  # Use ITLS mode or Normal Light
 simulatorSpeed = 3  # Simulator speed (default = 1)
-totalCarNum = 2500  # How manny car generate in the sim period
-totalPedNum = 2000  # How manny pedestrian generate in the sim period
+totalCarNum = 2500  # How many car generate in the sim period
+totalPedNum = 2000  # How many pedestrian generate in the sim period
+totalGrandMotherNum = 12 # How many grandmother generate in the sim period
 simTimePeriod = 3600  # How long the simulation run (in sec)
 
 carGenRate = (simTimePeriod * 30) / totalCarNum  # sec * frames / total carNum
 pedGenRate = (simTimePeriod * 30) / totalPedNum  # sec * frames / total carNum
+grandMotherGenRate = (simTimePeriod * 30) / totalGrandMotherNum
 pedMaxNumAtJunction = 20  # Max number of pedstrain wait at junction
 carMaxNumAtJunction = 15 # Max number of pedstrain wait at junction
 carLightGreenMaxTime = 120  # Car green light max time
@@ -27,6 +29,7 @@ carLightGreenMinTime = 10 #The least Carlight Green time last
 pedLightGreenMaxTime = 120  # Car green light max time
 pedLightGreenMinTime = 10 #The least Carlight Green time last
 carLightRedMaxTime = 24  # Car red light max time (Must Be > 16)
+pedLightFlashLongerTime = 5 # Exetend Flashing Green Time for pedLight
 # Set Simulator counting variable
 clock = pygame.time.Clock()
 running = True
@@ -93,6 +96,12 @@ if __name__ == "__main__":
         # Draw video record area words
         sys_font = pygame.font.SysFont("None", 15)
         Background.screen.blit(rendered, (Background.res_x * 0.47, Background.res_y * 0.455))
+        # Draw data area
+        pygame.draw.rect(Background.screen, (180, 180, 180), (Background.res_x * 0.49, Background.res_y * 0.75, 450, 150))
+        rendered = sys_font.render("Car Record Line", 0, Color.black)
+        sys_font = pygame.font.SysFont("None", 20)
+        rendered = sys_font.render("ITLS data: ", 0, Color.black)
+        Background.screen.blit(rendered, (Background.res_x * 0.5, Background.res_y * 0.76))
         # Draw simulation time
         sys_font = pygame.font.SysFont("None", 20)
         rendered = sys_font.render("Simulation time: " + str(round(simTime, 2)) + " sec.", 0, Color.black)
@@ -119,11 +128,11 @@ if __name__ == "__main__":
                 pedCountAtPedStart += 1
             if ped.y == Background.pedStart0YAry[1] and ped.pedStartNum == 1:
                 pedCountAtPedStart += 1
-        sys_font = pygame.font.SysFont("None", 15)
+        sys_font = pygame.font.SysFont("None", 16)
         rendered = sys_font.render("Car at carLight: " + str(carCountAtCarLight), 0, Color.black)
-        Background.screen.blit(rendered, (Background.res_x * 0.51, Background.res_y * 0.7))
+        Background.screen.blit(rendered, (Background.res_x * 0.51, Background.res_y * 0.79))
         rendered = sys_font.render("Ped at pedStart: " + str(pedCountAtPedStart), 0, Color.black)
-        Background.screen.blit(rendered, (Background.res_x * 0.51, Background.res_y * 0.73))
+        Background.screen.blit(rendered, (Background.res_x * 0.51, Background.res_y * 0.81))
 
         # CarLight ITLS
         if itlsMode == True:
@@ -176,6 +185,14 @@ if __name__ == "__main__":
                 countPedLightTime = True
 
             elif pedLight == "flashingGreen" and simTime - pedLightChgTime > 10:
+                if pedLightIsWalking(pedArray, Background.pedStart0YAry):
+                    pedLight == "flashingGreenLonger"
+                else:
+                    pedLight = "red"
+                    carLight = "redToYellow"
+                    countCarLightTime = True
+
+            elif pedLight == "flashingGreenLonger" and simTime - pedLightChgTime > (10 + pedLightFlashLongerTime):
                 pedLight = "red"
                 carLight = "redToYellow"
                 countCarLightTime = True
@@ -308,8 +325,8 @@ if __name__ == "__main__":
             c = Pedestrian(Background.pedStart0XAry[line], Background.pedStart0YAry[pedStartNum],
                            random.uniform(0.2, 0.4) * simulatorSpeed, 0, line, pedStartNum)
             pedArray.append(c)
-
-        if random.randint(0, int(pedGenRate * 200/ simulatorSpeed)) == 1: # Put Grandmother on the road
+        # Put Grand mother on the road
+        if random.randint(0, int(grandMotherGenRate / simulatorSpeed)) == 1: # Put Grandmother on the road
             line = random.randint(0, 3)
             pedStartNum = random.randint(0, 1)
 
@@ -361,11 +378,24 @@ if __name__ == "__main__":
 
         sys_font = pygame.font.SysFont("None", 16)
         rendered = sys_font.render("Pedestrain waiting time at junction counter(for ITLS switching): " + str(round(pedWaitingtimeAtJunction, 2)), 0, (0, 0, 0))
-        Background.screen.blit(rendered, (Background.res_x * 0.51, Background.res_y * 0.75))
+        Background.screen.blit(rendered, (Background.res_x * 0.51, Background.res_y * 0.83))
 
         sys_font = pygame.font.SysFont("None", 16)
         rendered = sys_font.render("Car waiting time at junction counter(for ITLS switching): " + str(round(carWaitingtimeAtJunction, 2)), 0, (0, 0, 0))
-        Background.screen.blit(rendered, (Background.res_x * 0.51, Background.res_y * 0.77))
+        Background.screen.blit(rendered, (Background.res_x * 0.51, Background.res_y * 0.85))
+
+        sys_font = pygame.font.SysFont("None", 16)
+        rendered = sys_font.render( "carlight status: " + carLight, 0, (0, 0, 0))
+        Background.screen.blit(rendered, (Background.res_x * 0.51, Background.res_y * 0.87))
+
+        rendered = sys_font.render("pedlight status: " + pedLight, 0, (0, 0, 0))
+        Background.screen.blit(rendered, (Background.res_x * 0.51, Background.res_y * 0.89))
+
+        rendered = sys_font.render("pervious carlight time: " + str(carLightChgTime), 0, (0, 0, 0))
+        Background.screen.blit(rendered, (Background.res_x * 0.7, Background.res_y * 0.87))
+
+        rendered = sys_font.render("pervious pedlight time: " + str(carLightChgTime), 0, (0, 0, 0))
+        Background.screen.blit(rendered, (Background.res_x * 0.7, Background.res_y * 0.89))
 
         # Update Game
         clock.tick(30)
