@@ -13,4 +13,4 @@ class Background:
     pedStart0YAry = [res_y * 0.695, res_y * 0.5695]
 
     # Car start Y position
-    yArray = [482, 462, 442, 422]
+    yArray = [res_y * 0.654, res_y * 0.63, res_y * 0.604, res_y * 0.578]

@@ -5,32 +5,56 @@ from background import Background
 from color import Color
 from car import Car
 from pedestrian import Pedestrian
-from checkCollision import isCarCollided, pedLightIsWalking
+from checkCollision import isTooCloseToCarInFront, isCarCollided, pedLightIsWalking
 from carLight import carTrafficLightSignalSwitching
 from pedLight import pedTrafficLightSignalSwitching
 
 pygame.init()
 
-# Set Simulator
+# Set Simulator changeable variable
+itlsMode = True  # Use ITLS mode or Normal Light
+simulatorSpeed = 3  # Simulator speed (default = 1)
+totalCarNum = 2500  # How manny car generate in the sim period
+totalPedNum = 2000  # How manny pedestrian generate in the sim period
+simTimePeriod = 3600  # How long the simulation run (in sec)
+
+carGenRate = (simTimePeriod * 30) / totalCarNum  # sec * frames / total carNum
+pedGenRate = (simTimePeriod * 30) / totalPedNum  # sec * frames / total carNum
+pedMaxNumAtJunction = 20  # Max number of pedstrain wait at junction
+carMaxNumAtJunction = 15 # Max number of pedstrain wait at junction
+carLightGreenMaxTime = 120  # Car green light max time
+carLightGreenMinTime = 10 #The least Carlight Green time last
+pedLightGreenMaxTime = 120  # Car green light max time
+pedLightGreenMinTime = 10 #The least Carlight Green time last
+carLightRedMaxTime = 24  # Car red light max time (Must Be > 16)
+# Set Simulator counting variable
 clock = pygame.time.Clock()
 running = True
-simulatorSpeed = 1
 waitingTime = 0
 carLight = "green"
 pedLight = "red"
 frameCount = 0
 simTime = 0
 
+# 1400 / (3600 * 30)
+
 # Traffic elements
 carArray = []
 pedArray = []
 carLineArray = []
 
-#Count TrafficModel Time
-countCarLightTime = True
-countPedLightTime = True
+# Count TrafficModel Time
+countCarLightTime = True # For Carlight switch
+countPedLightTime = True # For Pedlight switch
+countCarWaitAtJunctionTime = True # For counting car waiting at junction
+countPedWaitAtJunctionTime = False # For counting ped waiting at junction
+carWaitingtimeAtJunctionTimeStamp = 0
+pedWaitingtimeAtJunctionTimeStamp = 0
+carWaitingtimeAtJunction = 0
+pedWaitingtimeAtJunction = 0
 totalCarWaitingTime = 0
 totalPedWaitingTime = 0
+
 simStartTime = 0
 if __name__ == "__main__":
 
@@ -42,14 +66,14 @@ if __name__ == "__main__":
         for event in pygame.event.get():
             if event.type == pygame.QUIT or event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 running = False
-        #set simulation time period
-        if int(simTime) == 3600:
+        # set simulation time period
+        if int(simTime) == simTimePeriod:
             running = False
 
-        #count Frame pass in scale
+        # count Frame pass in scale
         simTime = frameCount / 30
         frameCount += 1 * simulatorSpeed
-        #Draw screen
+        # Draw screen
         Background.screen.fill((255, 255, 255))
         Background.screen.blit(Background.image, (0, 0))
 
@@ -71,14 +95,18 @@ if __name__ == "__main__":
         Background.screen.blit(rendered, (Background.res_x * 0.47, Background.res_y * 0.455))
         # Draw simulation time
         sys_font = pygame.font.SysFont("None", 20)
-        rendered = sys_font.render("Simulation time: " + str(int(simTime)) + " sec.", 0, Color.black)
+        rendered = sys_font.render("Simulation time: " + str(round(simTime, 2)) + " sec.", 0, Color.black)
+        Background.screen.blit(rendered, (Background.res_x * 0.05, Background.res_y * 0.15))
+        # Draw simulation running speed
+        rendered = sys_font.render("Simulation running at " + str(simulatorSpeed) + "X speed.", 0, Color.black)
         Background.screen.blit(rendered, (Background.res_x * 0.05, Background.res_y * 0.1))
-
         # Car traffic light1 signal switching
-        carTrafficLightSignalSwitching(carLight, Background.screen, Background.res_x, Background.res_y, Color.green, Color.yellow, Color.red)
+        carTrafficLightSignalSwitching(carLight, Background.screen, Background.res_x, Background.res_y, Color.green,
+                                       Color.yellow, Color.red)
 
         # ped traffic light1 signal switching
-        pedTrafficLightSignalSwitching(pedLight, Background.screen, Background.res_x, Background.res_y, Color.green, Color.darkGreen, Color.black, Color.red, simStartTime, simTime)
+        pedTrafficLightSignalSwitching(pedLight, Background.screen, Background.res_x, Background.res_y, Color.green,
+                                       Color.darkGreen, Color.black, Color.red, simStartTime, simTime)
 
         # Count traffic flow at junction
         carCountAtCarLight = 0
@@ -98,95 +126,195 @@ if __name__ == "__main__":
         Background.screen.blit(rendered, (Background.res_x * 0.51, Background.res_y * 0.73))
 
         # CarLight ITLS
-        if countCarLightTime:
-            carLightChgTime = simTime
-            countCarLightTime = False
+        if itlsMode == True:
+            if countCarLightTime:
+                carLightChgTime = simTime
+                countCarLightTime = False
+            if countPedLightTime:
+                pedLightChgTime = simTime
+                countPedLightTime = False
 
-        if carLight == "green" and (pedCountAtPedStart >= 20 or simTime - carLightChgTime >= 120):
-            carLight = "greenToYellow"
-            # print("carLight switched to yellow.")
-            # print("carLight status: " + carLight1 + ".\n")
-            countCarLightTime = True
+            if (carCountAtCarLight > 0) and (countCarWaitAtJunctionTime == True) and (carLight == "red"): # At least one car waiting at intersection
+                carWaitingtimeAtJunctionTimeStamp = simTime
+                countCarWaitAtJunctionTime = False
 
-        elif carLight == "greenToYellow" and simTime - carLightChgTime >= 3:
-            carLight = "red"
-            pedLight = "green"
-            # print("carLight switched to red.")
-            # print("carLight status: " + carLight + ".\n")
-            countCarLightTime = True
+            if (countCarWaitAtJunctionTime == False) and (carLight == "red"):
+                carWaitingtimeAtJunction = simTime - carWaitingtimeAtJunctionTimeStamp
+            else:
+                carWaitingtimeAtJunction = 0
 
-        elif carLight == "red" and simTime - carLightChgTime >= 13:
-            carLight = "redToYellow"
-            # print("carLight switched to yellow.")
-            # print("carLight status: " + carLight + ".\n")
-            countCarLightTime = True
+            if (pedCountAtPedStart > 0) and (countPedWaitAtJunctionTime == True) and ((pedLight == "red") or (pedLight == "flashingGreen")):  # At least one ped waiting at intersection
+                pedWaitingtimeAtJunctionTimeStamp = simTime
+                countPedWaitAtJunctionTime = False
 
-        elif carLight == "red" and 12 >= simTime - carLightChgTime >= 7:
-            pedLight = "flashingGreen"
+            if (countPedWaitAtJunctionTime == False) and ((pedLight == "red") or (pedLight == "flashingGreen")):
+                pedWaitingtimeAtJunction = simTime - pedWaitingtimeAtJunctionTimeStamp
+            else:
+                pedWaitingtimeAtJunction = 0
 
-        elif carLight == "red" and simTime - carLightChgTime > 9:
-            pedLight = "red"
+            if (carLight == "green" and
+                    (((simTime - carLightChgTime >= carLightGreenMinTime) and ((pedCountAtPedStart >= pedMaxNumAtJunction) or (pedWaitingtimeAtJunction > 30))) or (simTime - carLightChgTime >= carLightGreenMaxTime))):  # CarLight switch to red conditiion
+                carLight = "greenToYellow"
+                # print("carLight switched to yellow.")
+                # print("carLight status: " + carLight1 + ".\n")
+                countCarLightTime = True
 
-        elif carLight == "redToYellow" and simTime - carLightChgTime >= 3:
-            carLight = "green"
-            # print("carLight switched to green.")
-            # print("carLight status: " + carLight + ".\n")
-            countCarLightTime = True
+            elif carLight == "greenToYellow" and simTime - carLightChgTime >= 3:  # Light yellow last for 3 second
+                carLight = "red"
+                pedLight = "green"
+                # print("carLight switched to red.")
+                # print("carLight status: " + carLight + ".\n")
+                countCarLightTime = True
+                countCarWaitAtJunctionTime = True
+                countPedLightTime = True
+
+            elif (pedLight == "green" and
+                (((simTime - pedLightChgTime >= carLightGreenMinTime) and ((carCountAtCarLight >= carMaxNumAtJunction) or (carWaitingtimeAtJunction > 30))) or (simTime - pedLightChgTime >= pedLightGreenMaxTime))):  # CarLight switch to red conditiion
+
+                pedLight = "flashingGreen"
+                countPedWaitAtJunctionTime = True
+                countPedLightTime = True
+
+            elif pedLight == "flashingGreen" and simTime - pedLightChgTime > 10:
+                pedLight = "red"
+                carLight = "redToYellow"
+                countCarLightTime = True
+
+            elif carLight == "redToYellow" and simTime - carLightChgTime >= 3:
+                carLight = "green"
+                # print("carLight switched to green.")
+                # print("carLight status: " + carLight + ".\n")
+                countCarLightTime = True
+
+        # Normal Traffic Light Switching
+        if itlsMode == False:
+
+            if countCarLightTime:
+                carLightChgTime = simTime
+                countCarLightTime = False
+
+            if carLight == "green" and simTime - carLightChgTime >= 86:  # 86
+                carLight = "greenToYellow"
+                # print("carLight1 switched to yellow.")
+                # print("carLight1 status: " + carLight1 + ".\n")
+                countCarLightTime = True
+
+            elif carLight == "greenToYellow" and simTime - carLightChgTime >= 3:
+                carLight = "red"
+                # print("carLight1 switched to red.")
+                # print("carLight1 status: " + carLight1 + ".\n")
+                countCarLightTime = True
+
+            elif carLight == "red" and simTime - carLightChgTime >= 39:  # 39
+                carLight = "redToYellow"
+                # print("carLight1 switched to yellow")
+                # print("carLight1 status: " + carLight1 + ".\n")
+                countCarLightTime = True
+
+            elif carLight == "redToYellow" and simTime - carLightChgTime >= 3:
+                carLight = "green"
+                # print("carLight1 switched to green")
+                # print("carLight1 status: " + carLight1 + ".\n")
+                countCarLightTime = True
+
+            # Ped light normal switch
+            if countPedLightTime:
+                pedLightChgTime = simTime
+                countPedLightTime = False
+
+            if pedLight == "red" and simTime - pedLightChgTime >= 92:  # 92
+                pedLight = "green"
+                # print("pedLight1 switched to green.")
+                # print("pedLight1 status: " + pedLight1 + ".\n")
+                countPedLightTime = True
+
+            elif pedLight == "green" and simTime - pedLightChgTime >= 23:  # 23
+                pedLight = "flashingGreen"
+                # print("pedLight1 switched to red.")
+                # print("pedLight1 status: " + pedLight1 + ".\n")
+                countPedLightTime = True
+
+            elif pedLight == "flashingGreen" and simTime - pedLightChgTime >= 10:  # 10
+                pedLight = "bufferRed"
+                # print("pedLight1 switched to yellow")
+                # print("pedLight1 status: " + pedLight1 + ".\n")
+                countPedLightTime = True
+
+            elif pedLight == "bufferRed" and simTime - pedLightChgTime >= 6:  # 3 + 3
+                pedLight = "red"
+                # print("pedLight1 switched to yellow")
+                # print("pedLight1 status: " + pedLight1 + ".\n")
+                countPedLightTime = True
 
         # Put car on the road
-        if random.randint(0, int(20 / simulatorSpeed)) == 1:
+        if random.randint(0, int(carGenRate / simulatorSpeed)) == 1:
             line = random.randint(0, 3)
-            c = Car(Background.res_x-100,Background.yArray[line], random.uniform(3, 8) * simulatorSpeed, 0, line) # The place that car start
+            c = Car(Background.res_x - 100, Background.yArray[line], random.uniform(2, 4) * simulatorSpeed, 0,
+                    line)  # The place that car start
             carArray.append(c)
             carLineArray.append([line, c])
 
         for c in carArray:
-            if c.x > 150: # The place that car out
-                c.carStart(Background.screen, Color.darkBlue) 
+            if c.x > 100:  # The place that car out
+                c.carStart(Background.screen, Color.darkBlue)
 
-            if isCarCollided(carLineArray, c) and c.x > 210:
+            if isTooCloseToCarInFront(carLineArray, c) and c.x > 150:
+                c.speed = 1.5 * simulatorSpeed
+            else:
+                c.speed = random.uniform(3, 4) * simulatorSpeed
+
+            if isCarCollided(carLineArray, c) and c.x > 150:
                 c.x -= 0
                 c.waitingTime += 1 * simulatorSpeed
 
-        # Car postition
+            # Car postition
             else:
                 # 1st part Route movement
                 if c.x >= 588:
                     c.x -= c.speed
                 # 2nd part Route movement
                 elif 588 > c.x > 387:
-                        c.x -= c.speed * 0.89    # slope of cars
-                        c.y += c.speed * 0.11
+                    c.x -= c.speed * 0.97  # slope of cars
+                    c.y += c.speed * 0.03
                 # Check 3rd part carlight junction movement
-                elif 387 >= c.x > 377:
+                elif 393 >= c.x > 377:
                     if carLight == "green":
                         if pedLightIsWalking(pedArray, Background.pedStart0YAry):
-                            c.x -=0
+                            c.x -= 0
                             c.waitingTime += 1 * simulatorSpeed
                         else:
-                            c.x -= c.speed * 0.89
-                            c.y += c.speed * 0.11
+                            c.x -= c.speed * 0.97
+                            c.y += c.speed * 0.03
                     elif carLight == "greenToYellow" or carLight == "redToYellow":
                         if c.x >= 377:
                             c.x -= 0
                             c.waitingTime += 1 * simulatorSpeed
                         else:
-                            c.x -= c.speed * 0.89
-                            c.y += c.speed * 0.11
+                            c.x -= c.speed * 0.97
+                            c.y += c.speed * 0.03
                     elif carLight == "red":
-                            c.x -= 0
-                            c.waitingTime += 1 * simulatorSpeed
+                        c.x -= 0
+                        c.waitingTime += 1 * simulatorSpeed
                 # 4rd part Route movement
                 elif 377 >= c.x > 100:
-                    c.x -= c.speed * 0.9
-                    c.y += c.speed * 0.1
-
+                    c.x -= c.speed * 0.91
+                    c.y += c.speed * 0.09
 
         # Put pedestrian on the road
-        if random.randint(0, int(25 / simulatorSpeed)) == 1:
+        if random.randint(0, int(pedGenRate / simulatorSpeed)) == 1:
             line = random.randint(0, 3)
             pedStartNum = random.randint(0, 1)
-            c = Pedestrian(Background.pedStart0XAry[line], Background.pedStart0YAry[pedStartNum], random.uniform(1, 1.5) * simulatorSpeed, 0, line, pedStartNum)
+
+            c = Pedestrian(Background.pedStart0XAry[line], Background.pedStart0YAry[pedStartNum],
+                           random.uniform(0.2, 0.4) * simulatorSpeed, 0, line, pedStartNum)
+            pedArray.append(c)
+
+        if random.randint(0, int(pedGenRate * 200/ simulatorSpeed)) == 1: # Put Grandmother on the road
+            line = random.randint(0, 3)
+            pedStartNum = random.randint(0, 1)
+
+            c = Pedestrian(Background.pedStart0XAry[line], Background.pedStart0YAry[pedStartNum],
+                           random.uniform(0.09, 0.09) * simulatorSpeed, 0, line, pedStartNum)
             pedArray.append(c)
 
         for p in pedArray:
@@ -210,7 +338,6 @@ if __name__ == "__main__":
                 elif pedLight == "green" or p.y != Background.pedStart0YAry[1]:
                     p.y += p.speed
 
-
         # Print pedestrian number
         for ped in pedArray:
             if ped.y == Background.pedStart0YAry[0] and ped.pedStartNum == 0:
@@ -220,7 +347,7 @@ if __name__ == "__main__":
 
         sys_font = pygame.font.SysFont("None", 16)
 
-        rendered = sys_font.render(str(Background.pedStart[0]), 0,(35, 20, 245))
+        rendered = sys_font.render(str(Background.pedStart[0]), 0, (35, 20, 245))
         Background.screen.blit(rendered, (Background.res_x * 0.335, Background.res_y * 0.71))
 
         rendered = sys_font.render(str(Background.pedStart[1]), 0, (35, 20, 245))
@@ -231,6 +358,14 @@ if __name__ == "__main__":
 
         Background.pedStart[0] = 0
         Background.pedStart[1] = 0
+
+        sys_font = pygame.font.SysFont("None", 16)
+        rendered = sys_font.render("Pedestrain waiting time at junction counter(for ITLS switching): " + str(round(pedWaitingtimeAtJunction, 2)), 0, (0, 0, 0))
+        Background.screen.blit(rendered, (Background.res_x * 0.51, Background.res_y * 0.75))
+
+        sys_font = pygame.font.SysFont("None", 16)
+        rendered = sys_font.render("Car waiting time at junction counter(for ITLS switching): " + str(round(carWaitingtimeAtJunction, 2)), 0, (0, 0, 0))
+        Background.screen.blit(rendered, (Background.res_x * 0.51, Background.res_y * 0.77))
 
         # Update Game
         clock.tick(30)

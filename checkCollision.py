@@ -1,3 +1,11 @@
+# check tooCloseToCarInFront
+def isTooCloseToCarInFront(carLineArray, c):
+    for row in carLineArray:
+        if row[0] == c.line:
+            if 50 > (c.x - row[1].x) > 0:
+              return True
+    return False
+
 # check collision
 def isCarCollided(carLineArray, c):
     for row in carLineArray:
