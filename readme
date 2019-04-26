@@ -1,0 +1,12 @@
+Simulator:
+
+    Changeable data
+        -Simulatior TimePeriod
+        -Car and pedestrain number in a simulator
+
+    Changeable threshold
+        -Carlight & pedlight min time
+
+
+
+ITLS

@@ -1,6 +1,7 @@
 import pygame
 import random
 import time
+import openpyxl
 from background import Background
 from color import Color
 from car import Car
@@ -24,9 +25,9 @@ pedGenRate = (simTimePeriod * 30) / totalPedNum  # sec * frames / total carNum
 grandMotherGenRate = (simTimePeriod * 30) / totalGrandMotherNum
 pedMaxNumAtJunction = 20  # Max number of pedstrain wait at junction
 carMaxNumAtJunction = 15 # Max number of pedstrain wait at junction
-carLightGreenMaxTime = 120  # Car green light max time
+carLightGreenMaxTime = simTimePeriod  # Car green light max time
 carLightGreenMinTime = 10 #The least Carlight Green time last
-pedLightGreenMaxTime = 120  # Car green light max time
+pedLightGreenMaxTime = simTimePeriod  # Car green light max time
 pedLightGreenMinTime = 10 #The least Carlight Green time last
 carLightRedMaxTime = 24  # Car red light max time (Must Be > 16)
 pedLightFlashLongerTime = 5 # Exetend Flashing Green Time for pedLight
@@ -416,3 +417,22 @@ print("Total pedestrian number on the street: " + str(len(pedArray)))
 for ped in pedArray:
     totalPedWaitingTime += ped.waitingTime
 print("Average pedestrian watiting time: " + str(totalPedWaitingTime / len(carArray) / 30) + " seconds")
+
+# Save data to file
+
+book = openpyxl.load_workbook('result.xlsx')
+sheet = book.active
+
+# K1 default = 1
+countSave = sheet['K1']
+countSave.value += 1
+
+sheet['K1'] = countSave.value
+sheet[str('A' + str(countSave.value))] = countSave.value - 1
+sheet[str('B' + str(countSave.value))] = simTime
+sheet[str('C' + str(countSave.value))] = len(carArray)
+sheet[str('D' + str(countSave.value))] = len(pedArray)
+sheet[str('E' + str(countSave.value))] = totalCarWaitingTime / len(carArray) / 30
+sheet[str('F' + str(countSave.value))] = totalPedWaitingTime / len(pedArray) / 30
+
+book.save("result.xlsx")
