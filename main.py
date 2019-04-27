@@ -18,8 +18,8 @@ def main_sim(threshold1, threshold2, threshold3, threshold4, threshold5, thresho
     # Set Simulator changeable variable
     itlsMode = True  # Use ITLS mode or Normal Light
     simulatorSpeed = 5  # Simulator speed (default = 1)
-    totalCarNum = 2500 / 6  # How many car generate in the sim period
-    totalPedNum = 2500 / 6  # How many pedestrian generate in the sim period
+    totalCarNum = 2000 / 6  # How many car generate in the sim period (2000 to 3000)
+    totalPedNum = 623 / 6  # How many pedestrian generate in the sim period (623)
     totalGrandMotherNum = 12 / 6  # How many grandmother generate in the sim period
     simTimePeriod = 3600 / 6  # How long the simulation run (in sec)
 
@@ -301,11 +301,11 @@ def main_sim(threshold1, threshold2, threshold3, threshold4, threshold5, thresho
                     if c.x >= 588:
                         c.x -= c.speed
                     # 2nd part Route movement
-                    elif 588 > c.x > 387:
+                    elif 588 > c.x > 395:
                         c.x -= c.speed * 0.97  # slope of cars
                         c.y += c.speed * 0.03
                     # Check 3rd part carlight junction movement
-                    elif 393 >= c.x > 377:
+                    elif 395 >= c.x > 360:
                         if carLight == "green":
                             if pedLightIsWalking(pedArray, Background.pedStart0YAry):
                                 c.x -= 0
@@ -314,7 +314,7 @@ def main_sim(threshold1, threshold2, threshold3, threshold4, threshold5, thresho
                                 c.x -= c.speed * 0.97
                                 c.y += c.speed * 0.03
                         elif carLight == "greenToYellow" or carLight == "redToYellow":
-                            if c.x >= 377:
+                            if c.x >= 360:
                                 c.x -= 0
                                 c.waitingTime += 1 * simulatorSpeed
                             else:
@@ -324,7 +324,7 @@ def main_sim(threshold1, threshold2, threshold3, threshold4, threshold5, thresho
                             c.x -= 0
                             c.waitingTime += 1 * simulatorSpeed
                     # 4rd part Route movement
-                    elif 377 >= c.x > 100:
+                    elif 360 >= c.x > 100:
                         c.x -= c.speed * 0.91
                         c.y += c.speed * 0.09
 
@@ -460,9 +460,11 @@ def main_sim(threshold1, threshold2, threshold3, threshold4, threshold5, thresho
 
 if __name__ == "__main__":
     index = 0
-    for i in range(2):
+
+    for i in range(1):
         try:
             x = threading.Thread(target=main_sim(random.randint(5, 15), random.randint(5, 20), random.randint(5, 60), random.randint(5, 20), random.randint(5, 20), random.randint(5, 60), random.randint(3, 10)), args=(index,))
+            # x = threading.Thread(target=main_sim(7, 22, 6, 17, 16, 10, 5), args=(index,))
 
               #  1 = 5, 15  carMaxNumAtJunction
               #  2 = 5 , 20 carLightGreenMinTime

@@ -10,3 +10,24 @@ Simulator:
 
 
 ITLS
+
+
+- 0.304287 * carMaxNumAtJunction ^ 1.000000
++ 0.607394 * carMaxWaitingtimeAtJunction ^ 2.000000
++ 0.299306 * carLightGreenMinTime ^ 5.000000
++ 0.465030 * pedMaxNumAtJunction ^ 2.000000
++ 0.334928 * pedMaxWaitingtimeAtJunction ^ 2.000000
++ 1.146510 * pedLightGreenMinTime ^ 2.000000
+- 0.002257 * pedLightFlashLongerTime ^ 3.000000
++ 0.061045 * CarAverageWaitingTime ^ 1.000000
++ 6.761017
+
+- 0.304287 * 0.5 ^ 1.000000
++ 0.607394 * 0.5 ^ 2.000000
++ 0.299306 * 0.5 ^ 5.000000
++ 0.465030 * 0.5 ^ 2.000000
++ 0.334928 * 0.5 ^ 2.000000
++ 1.146510 * 0.5 ^ 2.000000
+- 0.002257 * 0.5 ^ 3.000000
++ 0.061045 * 0.5 ^ 1.000000
++ 6.761017
