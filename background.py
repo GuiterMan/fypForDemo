@@ -14,3 +14,4 @@ class Background:
 
     # Car start Y position
     yArray = [res_y * 0.654, res_y * 0.63, res_y * 0.604, res_y * 0.578]
+    yArray2 = [res_y * 0.552, res_y * 0.525]

@@ -3,6 +3,7 @@ import random
 import time
 import openpyxl
 import threading
+import os
 from background import Background
 from color import Color
 from car import Car
@@ -17,7 +18,7 @@ def main_sim(threshold1, threshold2, threshold3, threshold4, threshold5, thresho
 
     # Set Simulator changeable variable
     itlsMode = True  # Use ITLS mode or Normal Light
-    simulatorSpeed = 5  # Simulator speed (default = 1)
+    simulatorSpeed = 1  # Simulator speed (default = 1)
     totalCarNum = 2000 / 6  # How many car generate in the sim period (2000 to 3000)
     totalPedNum = 623 / 6  # How many pedestrian generate in the sim period (623)
     totalGrandMotherNum = 12 / 6  # How many grandmother generate in the sim period
@@ -56,6 +57,8 @@ def main_sim(threshold1, threshold2, threshold3, threshold4, threshold5, thresho
     carArray = []
     pedArray = []
     carLineArray = []
+    carArray2 = []
+    carLineArray2 = []
 
     # Count TrafficModel Time
     countCarLightTime = True # For Carlight switch
@@ -328,6 +331,82 @@ def main_sim(threshold1, threshold2, threshold3, threshold4, threshold5, thresho
                         c.x -= c.speed * 0.91
                         c.y += c.speed * 0.09
 
+            # Put Car on the road 5th line(For demo)
+            if random.randint(0, int(carGenRate / simulatorSpeed)) == 1:
+                line2 = 1
+                c2 = Car(Background.res_x - 100, Background.yArray2[1], random.uniform(2, 4) * simulatorSpeed, 0,
+                        line2)  # The place that car start
+                carArray2.append(c2)
+                carLineArray2.append([line2, c2])
+
+            for c2 in carArray2:
+                if c2.x > 100 and c2.y > 400:  # The place that car out
+                    c2.carStartImg(Background.screen)
+
+                #if isCarCollided(carLineArray2, c2) and (c2.x > 150 and c2.y > 400):
+                #    print("collided")
+                #    pygame.draw.rect(Background.screen, (200, 0, 0),
+                #                     (500, 400, 150, 1))
+                #    rendered = sys_font.render("Car Record Line", 0, Color.black)
+                #    c2.x -= 0
+                #    c2.waitingTime += 1 * simulatorSpeed
+                #else:
+
+                # Car postition
+
+                    # 1st part Route movement
+                    if c2.x >= 588 and 400 <= c2.y:
+                        c2.x -= c2.speed
+                    # 2nd part Route movement
+                    elif 588 > c2.x > 470 and 400 <= c2.y:
+                        c2.x -= c2.speed * 0.97  # slope of cars
+                        c2.y += c2.speed * 0.03
+                    # Check 3rd part carlight junction movement
+                    elif 470 >= c2.x > 450 and 400 <= c2.y:
+                        if carLight == "green":
+                            if pedLightIsWalking(pedArray, Background.pedStart0YAry):
+                                c2.x -= 0
+                                c2.waitingTime += 1 * simulatorSpeed
+                            else:
+                                c2.x -= c2.speed * 0.97
+                                c2.y += c2.speed * 0.03
+                        elif carLight == "greenToYellow" or carLight == "redToYellow":
+                            if c2.x >= 360:
+                                c2.x -= 0
+                                c2.waitingTime += 1 * simulatorSpeed
+                            else:
+                                c2.x -= c2.speed * 0.97
+                                c2.y += c2.speed * 0.03
+                        elif carLight == "red":
+                            c2.x -= 0
+                            c2.waitingTime += 1 * simulatorSpeed
+                    # 4th part Route movement
+                    elif 450 >= c2.x >= 440 and 370 <= c2.y:
+                        print("going")
+                        pygame.draw.rect(Background.screen, (200, 0, 0),
+                                         (500, 370, 150, 1))
+                        c2.x -= c2.speed * 0.37
+                        c2.y += c2.speed * -0.63
+                else:
+                    c2.carStartImgAndRotate(Background.screen, 90)
+                    # 5th part Route movement
+                    if 450 >= c2.x > 430:
+                        print("going2")
+                        c2.x -= c2.speed * 0.37
+                        c2.y += c2.speed * -0.63
+                    # 6th part Route movement
+                    #elif 420 >= c2.x > 380 and 1000 > c2.y > 0:
+                    #    print("going3")
+                    #    c2.x += c2.speed * 0.4
+                    #    c2.y += c2.speed * -0.6
+                    # 7th part Route movement
+                    elif 400 <= c2.y:
+                        print("going4")
+                        c2.x += c2.speed * 0.4
+                        c2.y += c2.speed * -0.6
+
+            # Put Ped on the road (For demo)
+
             # Put pedestrian on the road
             if random.randint(0, int(pedGenRate / simulatorSpeed)) == 1:
                 line = random.randint(0, 3)
@@ -455,7 +534,7 @@ def main_sim(threshold1, threshold2, threshold3, threshold4, threshold5, thresho
 
     sheet[str('M' + str(countSave.value))] = pedLightFlashLongerTime # Exetend Flashing Green Time for pedLight
 
-    book.save("result.xlsx")
+    book.save("result2.xlsx")
 
 
 if __name__ == "__main__":

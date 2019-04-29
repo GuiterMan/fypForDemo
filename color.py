@@ -2,7 +2,8 @@ import pygame
 
 # Color set
 class Color:
-    darkBlue = (30, 30, 130)
+    darkBlue = (140, 60, 10)
+    # darkBlue = (30, 30, 130)
     black = (50, 50, 50)
     red = (255, 0, 0)
     yellow = (255, 211, 0)
