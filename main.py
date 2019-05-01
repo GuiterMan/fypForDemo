@@ -8,7 +8,7 @@ from background import Background
 from color import Color
 from car import Car
 from pedestrian import Pedestrian
-from checkCollision import isTooCloseToCarInFront, isCarCollided, pedLightIsWalking
+from checkCollision import isTooCloseToCarInFront, isCarCollided, pedLightIsWalking, line56IsCarCollided
 from carLight import carTrafficLightSignalSwitching
 from pedLight import pedTrafficLightSignalSwitching
 
@@ -58,7 +58,11 @@ def main_sim(threshold1, threshold2, threshold3, threshold4, threshold5, thresho
     pedArray = []
     carLineArray = []
     carArray2 = []
+    carArray3 = []
+    carArray4 = []
     carLineArray2 = []
+    carLineArray3 = []
+    carLineArray4 = []
 
     # Count TrafficModel Time
     countCarLightTime = True # For Carlight switch
@@ -278,15 +282,22 @@ def main_sim(threshold1, threshold2, threshold3, threshold4, threshold5, thresho
                     countPedLightTime = True
 
             # Put car on the road
-            if random.randint(0, int(carGenRate / simulatorSpeed)) == 1:
+            if random.randint(0, int(carGenRate / simulatorSpeed / 2)) == 1:
                 line = random.randint(0, 3)
-                c = Car(Background.res_x - 100, Background.yArray[line], random.uniform(2, 4) * simulatorSpeed, 0,
-                        line)  # The place that car start
+                if random.randint(0, 10) == 1:
+                    c = Car(Background.res_x - 100, Background.yArray[line], random.uniform(2, 4) * simulatorSpeed, 0,
+                            line, True)  # The place that car start
+                else:
+                    c = Car(Background.res_x - 100, Background.yArray[line], random.uniform(2, 4) * simulatorSpeed, 0,
+                        line, False)  # The place that car start
+
                 carArray.append(c)
-                carLineArray.append([line, c])
+                carLineArray.append([line, c, c.isBus])
 
             for c in carArray:
-                if c.x > 100:  # The place that car out
+                if c.x > 100 and c.isBus:  # The place that car out
+                    c.busStart(Background.screen, Color.darkBlue)
+                elif c.x > 100 and not(c.isBus):
                     c.carStart(Background.screen, Color.darkBlue)
 
                 if isTooCloseToCarInFront(carLineArray, c) and c.x > 150:
@@ -331,11 +342,11 @@ def main_sim(threshold1, threshold2, threshold3, threshold4, threshold5, thresho
                         c.x -= c.speed * 0.91
                         c.y += c.speed * 0.09
 
-            # Put Car on the road 5th line(For demo)
-            if random.randint(0, int(carGenRate / simulatorSpeed)) == 1:
+            # Put Car on the road 6th line(For demo)
+            if random.randint(0, int(carGenRate / simulatorSpeed/ 2 * 5)) == 1:
                 line2 = 1
                 c2 = Car(Background.res_x - 100, Background.yArray2[1], random.uniform(2, 4) * simulatorSpeed, 0,
-                        line2)  # The place that car start
+                        line2, False)  # The place that car start
                 carArray2.append(c2)
                 carLineArray2.append([line2, c2])
 
@@ -343,72 +354,149 @@ def main_sim(threshold1, threshold2, threshold3, threshold4, threshold5, thresho
                 if c2.x > 100 and c2.y > 400:  # The place that car out
                     c2.carStartImg(Background.screen)
 
-                #if isCarCollided(carLineArray2, c2) and (c2.x > 150 and c2.y > 400):
-                #    print("collided")
-                #    pygame.draw.rect(Background.screen, (200, 0, 0),
-                #                     (500, 400, 150, 1))
-                #    rendered = sys_font.render("Car Record Line", 0, Color.black)
-                #    c2.x -= 0
-                #    c2.waitingTime += 1 * simulatorSpeed
-                #else:
+                if line56IsCarCollided(carLineArray2, c2) and (c2.x > 150 and c2.y > 400):
+                        print("collided")
+                        pygame.draw.rect(Background.screen, (200, 0, 0),
+                                         (500, 400, 150, 1))
+                        c2.x -= 0
+                else:
 
-                # Car postition
+                    # Car postition
 
                     # 1st part Route movement
                     if c2.x >= 588 and 400 <= c2.y:
                         c2.x -= c2.speed
                     # 2nd part Route movement
                     elif 588 > c2.x > 470 and 400 <= c2.y:
-                        c2.x -= c2.speed * 0.97  # slope of cars
-                        c2.y += c2.speed * 0.03
+                        c2.x -= 4 * 0.97  # slope of cars
+                        c2.y += 4 * 0.03
                     # Check 3rd part carlight junction movement
-                    elif 470 >= c2.x > 450 and 400 <= c2.y:
+                    elif 470 >= c2.x > 465 and 400 <= c2.y:
                         if carLight == "green":
                             if pedLightIsWalking(pedArray, Background.pedStart0YAry):
                                 c2.x -= 0
                                 c2.waitingTime += 1 * simulatorSpeed
                             else:
-                                c2.x -= c2.speed * 0.97
-                                c2.y += c2.speed * 0.03
+                                c2.x -= 4 * 0.97
+                                c2.y += 4 * 0.03
                         elif carLight == "greenToYellow" or carLight == "redToYellow":
                             if c2.x >= 360:
                                 c2.x -= 0
                                 c2.waitingTime += 1 * simulatorSpeed
                             else:
-                                c2.x -= c2.speed * 0.97
-                                c2.y += c2.speed * 0.03
+                                c2.x -= 4 * 0.97
+                                c2.y += 4 * 0.03
                         elif carLight == "red":
                             c2.x -= 0
                             c2.waitingTime += 1 * simulatorSpeed
                     # 4th part Route movement
-                    elif 450 >= c2.x >= 440 and 370 <= c2.y:
-                        print("going")
+                    elif 465 >= c2.x >= 440 and 400 <= c2.y:
+                        pygame.draw.rect(Background.screen, (200, 0, 0),
+                                             (500, 370, 150, 1))
+                        c2.x -= 4 * 0.37
+                        c2.y += 4 * -0.63
+                    elif 470 >= c2.x >= 410 and 400 >= c2.y >= 360:
+                        c2.carStartImgAndRotate(Background.screen)
+                        c2.x -= 4 * 0.5
+                        c2.y += 4 * -0.5
+                    elif 120 <=c2.y <= 360:
+                        c2.carStartImgAndRotate2(Background.screen)
+                        c2.x -= 4 * -0.39
+                        c2.y += 4 * -0.61
+
+
+            # Put Car on the road 5th line(For demo)
+            if random.randint(0, int(carGenRate / simulatorSpeed * 5)) == 1:
+                line3 = 0
+                c3 = Car(Background.res_x - 100, Background.yArray2[0], random.uniform(2, 4) * simulatorSpeed, 0,
+                        line3, False)  # The place that car start
+                carArray3.append(c3)
+                carLineArray3.append([line3, c3])
+
+
+            for c3 in carArray3:
+                if c3.x > 100 and c3.y > 415:  # The place that car out
+                    c3.carStartImg(Background.screen)
+                if line56IsCarCollided(carLineArray3, c3) and (c3.x > 150 and c3.y > 400):
+                    print("collided")
+                    pygame.draw.rect(Background.screen, (200, 0, 0),
+                                     (500, 400, 150, 1))
+                    c3.x -= 0
+
+                else:
+
+                # Car postition
+
+                    # 1st part Route movement
+                    if c3.x >= 588 and 415 <= c3.y:
+                        c3.x -= c3.speed
+                    # 2nd part Route movement
+                    elif 588 > c3.x > 470 and 415 <= c3.y:
+                        c3.x -= 4 * 0.97  # slope of cars
+                        c3.y += 4 * 0.03
+                    # Check 3rd part carlight junction movement
+                    elif 470 >= c3.x > 443 and 415 <= c3.y:
+                        if carLight == "green":
+                            if pedLightIsWalking(pedArray, Background.pedStart0YAry):
+                                c3.x -= 0
+                                c3.waitingTime += 1 * simulatorSpeed
+                            else:
+                                c3.x -= 4.5 * 0.97
+                                c3.y += 4.5 * 0.03
+                        elif carLight == "greenToYellow" or carLight == "redToYellow":
+                            if c3.x >= 360:
+                                c3.x -= 0
+                                c3.waitingTime += 1 * simulatorSpeed
+                            else:
+                                c3.x -= 4.5 * 0.97
+                                c3.y += 4.5 * 0.03
+                        elif carLight == "red":
+                            c3.x -= 0
+                            c3.waitingTime += 1 * simulatorSpeed
+                    # 4th part Route movement
+                    elif 445 >= c3.x >= 430 and 415 <= c3.y:
                         pygame.draw.rect(Background.screen, (200, 0, 0),
                                          (500, 370, 150, 1))
-                        c2.x -= c2.speed * 0.37
-                        c2.y += c2.speed * -0.63
-                else:
-                    c2.carStartImgAndRotate(Background.screen, 90)
-                    # 5th part Route movement
-                    if 450 >= c2.x > 430:
-                        print("going2")
-                        c2.x -= c2.speed * 0.37
-                        c2.y += c2.speed * -0.63
-                    # 6th part Route movement
-                    #elif 420 >= c2.x > 380 and 1000 > c2.y > 0:
-                    #    print("going3")
-                    #    c2.x += c2.speed * 0.4
-                    #    c2.y += c2.speed * -0.6
-                    # 7th part Route movement
-                    elif 400 <= c2.y:
-                        print("going4")
-                        c2.x += c2.speed * 0.4
-                        c2.y += c2.speed * -0.6
+                        c3.x -= 4.5 * 0.34
+                        c3.y += 4.5 * -0.63
+                    elif 470 >= c3.x >= 350 and 415 >= c3.y >= 360:
+                        c3.carStartImgAndRotate(Background.screen)
+                        c3.x -= 4.5 * 0.40
+                        c3.y += 4.5 * -0.65
+                    elif 120 <= c3.y <= 360:
+                        c3.carStartImgAndRotate2(Background.screen)
+                        c3.x -= 4.5 * -0.39
+                        c3.y += 4.5 * -0.61
+
+            # Put Car on left in rd
+            if random.randint(0, int(carGenRate / simulatorSpeed * 10)) == 1:
+                line4 = 0
+                c4 = Car(50, 453, 3 * simulatorSpeed, 0,
+                        line4, False)  # The place that car start
+                carArray4.append(c4)
+                carLineArray4.append([line4, c4])
+
+            for c4 in carArray4:
+                if c4.x >= 50 and c4.y >= 434:  # The place that car out
+                    c4.carStartImg(Background.screen)
+
+                    c4.x += 5 * 0.93
+                    c4.y -= 5 * 0.07
+
+                elif c4.x >= 50 and 434 >= c4.y >= 370:
+                    c4.carStartImgAndRotate2(Background.screen)
+                    c4.x += 5 * 0.50
+                    c4.y += 5 * -0.50
+                elif 120 <= c4.y <= 370:
+                    c4.carStartImgAndRotate2(Background.screen)
+                    c4.x += 5 * 0.4
+                    c4.y -= 5 * 0.6
+
 
             # Put Ped on the road (For demo)
 
             # Put pedestrian on the road
-            if random.randint(0, int(pedGenRate / simulatorSpeed)) == 1:
+            if random.randint(0, int(pedGenRate / simulatorSpeed * 5)) == 1:
                 line = random.randint(0, 3)
                 pedStartNum = random.randint(0, 1)
 
